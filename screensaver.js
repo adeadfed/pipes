@@ -85,15 +85,6 @@ var Pipe = function(scene, options) {
     self.object3d.add(teapot);
   };
   var makeElbowJoint = function(fromPosition, toPosition, tangentVector) {
-    // elbow
-    // var r = 0.2;
-    // elbow = new THREE.Mesh(
-    //   new THREE.TorusGeometry(r, pipeRadius, 8, 8, Math.PI / 2),
-    //   self.material
-    // );
-    // elbow.position.copy(fromPosition);
-    // self.object3d.add(elbow);
-
     // "elball" (not a proper elbow)
     var elball = new THREE.Mesh(
       new THREE.SphereGeometry(pipeRadius, 8, 8),
@@ -101,49 +92,6 @@ var Pipe = function(scene, options) {
     );
     elball.position.copy(fromPosition);
     self.object3d.add(elball);
-
-    // extrude an elbow joint
-
-    // there's THREE.EllipseCurve... but that's 2D
-
-    // function ArcCurve(scale) {
-    //   THREE.Curve.call(this);
-    //   this.scale = scale === undefined ? 1 : scale; // TODO: remove me probably
-    // }
-
-    // ArcCurve.prototype = Object.create(THREE.Curve.prototype);
-    // ArcCurve.prototype.constructor = ArcCurve;
-
-    // ArcCurve.prototype.getPoint = function(t) {
-    //   function circ(t) {
-    //     return Math.sqrt(1 - t * t);
-    //   }
-
-    //   var tx = t;
-    //   var ty = circ(t);
-    //   var tz = 0;
-
-    //   return new THREE.Vector3(tx, ty, tz).multiplyScalar(this.scale);
-    // };
-
-    // var extrudePath = new ArcCurve(0.1);
-
-    // var extrudePath = new THREE.CatmullRomCurve3([fromPosition, toPosition], false); // not enough to define the curve
-
-    // var extrusionSegments = 100;
-    // var radiusSegments = 10;
-    // var radius = pipeRadius;
-    // var tubeGeometry = new THREE.TubeBufferGeometry(
-    //   extrudePath,
-    //   extrusionSegments,
-    //   radius,
-    //   radiusSegments,
-    //   false
-    // );
-
-    // var elbow = new THREE.Mesh(tubeGeometry, self.material);
-    // elbow.position.copy(toPosition);
-    // self.object3d.add(elbow);
   };
 
   // if (getAt(self.currentPosition)) {
@@ -202,17 +150,6 @@ var Pipe = function(scene, options) {
     self.currentPosition = newPosition;
     self.positions.push(newPosition);
 
-    // var extrudePath = new THREE.CatmullRomCurve3(self.positions, false, "catmullrom");
-
-    // var extrusionSegments = 10 * self.positions.length;
-    // var radiusSegments = 10;
-    // var tubeGeometry = new THREE.TubeBufferGeometry( extrudePath, extrusionSegments, pipeRadius, radiusSegments, false );
-
-    // if(self.mesh){
-    // 	self.object3d.remove(self.mesh);
-    // }
-    // self.mesh = new THREE.Mesh(tubeGeometry, self.material);
-    // self.object3d.add(self.mesh);
   };
 };
 
@@ -221,21 +158,13 @@ var JOINTS_BALL = "ball";
 var JOINTS_MIXED = "mixed";
 var JOINTS_CYCLE = "cycle";
 
-var jointsCycleArray = [JOINTS_ELBOW, JOINTS_BALL, JOINTS_MIXED];
-var jointsCycleIndex = 0;
-
-var jointTypeSelect = document.getElementById("joint-types");
-
 var pipes = [];
 var options = {
   multiple: true,
   texturePath: null,
-  joints: jointTypeSelect.value,
+  joints: JOINTS_MIXED,
   interval: [16, 24], // range of seconds between fade-outs... not necessarily anything like how the original works
 };
-jointTypeSelect.addEventListener("change", function() {
-  options.joints = jointTypeSelect.value;
-});
 
 var canvasContainer = document.getElementById("canvas-container");
 
@@ -260,11 +189,6 @@ var camera = new THREE.PerspectiveCamera(
   100000
 );
 
-// controls
-var controls = new THREE.OrbitControls(camera, renderer.domElement);
-controls.enabled = false;
-// controls.autoRotate = true;
-
 // scene
 var scene = new THREE.Scene();
 
@@ -276,76 +200,9 @@ var directionalLightL = new THREE.DirectionalLight(0xffffff, 0.9);
 directionalLightL.position.set(-1.2, 1.5, 0.5);
 scene.add(directionalLightL);
 
-// dissolve transition effect
-
-var dissolveRects = [];
-var dissolveRectsIndex = -1;
-var dissolveRectsPerRow = 50;
-var dissolveRectsPerColumn = 50;
-var dissolveTransitionSeconds = 2;
-var dissolveTransitionFrames = dissolveTransitionSeconds * 60;
-var dissolveEndCallback;
-
-function dissolve(seconds, endCallback) {
-  // TODO: determine rect sizes better and simplify
-  // (silly approximation of squares of a particular size:)
-  dissolveRectsPerRow = Math.ceil(window.innerWidth / 20);
-  dissolveRectsPerColumn = Math.ceil(window.innerHeight / 20);
-
-  dissolveRects = new Array(dissolveRectsPerRow * dissolveRectsPerColumn)
-    .fill(null)
-    .map(function(_null, index) {
-      return {
-        x: index % dissolveRectsPerRow,
-        y: Math.floor(index / dissolveRectsPerRow),
-      };
-    });
-  shuffleArrayInPlace(dissolveRects);
-  dissolveRectsIndex = 0;
-  dissolveTransitionSeconds = seconds;
-  dissolveTransitionFrames = dissolveTransitionSeconds * 60;
-  dissolveEndCallback = endCallback;
-}
-function finishDissolve() {
-  dissolveEndCallback();
-  dissolveRects = [];
-  dissolveRectsIndex = -1;
-  ctx2d.clearRect(0, 0, canvas2d.width, canvas2d.height);
-}
-
-var clearing = false;
-var clearTID = -1;
-function clear(fast) {
-  clearTimeout(clearTID);
-  clearTID = setTimeout(
-    clear,
-    random(options.interval[0], options.interval[1]) * 1000
-  );
-  if (!clearing) {
-    clearing = true;
-    var fadeOutTime = fast ? 0.2 : 2;
-    dissolve(fadeOutTime, reset);
-  }
-}
-clearTID = setTimeout(
-  clear,
-  random(options.interval[0], options.interval[1]) * 1000
-);
-
-function reset() {
-  renderer.clear();
-  for (var i = 0; i < pipes.length; i++) {
-    scene.remove(pipes[i].object3d);
-  }
-  pipes = [];
-  clearGrid();
-  look();
-  clearing = false;
-}
 
 // this function is executed on each animation frame
 function animate() {
-  controls.update();
   if (options.texturePath && !textures[options.texturePath]) {
     var texture = THREE.ImageUtils.loadTexture(options.texturePath);
     texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
@@ -384,70 +241,27 @@ function animate() {
     }
   }
 
-  if (!clearing) {
-    renderer.render(scene, camera);
-  }
-
   if (
     canvas2d.width !== window.innerWidth ||
     canvas2d.height !== window.innerHeight
   ) {
     canvas2d.width = window.innerWidth;
     canvas2d.height = window.innerHeight;
-    // TODO: DRY!
-    // actually: TODO: make the 2d canvas really low resolution, and stretch it with CSS, with pixelated interpolation
-    if (dissolveRectsIndex > -1) {
-      for (var i = 0; i < dissolveRectsIndex; i++) {
-        var rect = dissolveRects[i];
-        // TODO: could precompute rect in screen space, or at least make this clearer with "xIndex"/"yIndex"
-        var rectWidth = innerWidth / dissolveRectsPerRow;
-        var rectHeight = innerHeight / dissolveRectsPerColumn;
-        ctx2d.fillStyle = "black";
-        ctx2d.fillRect(
-          Math.floor(rect.x * rectWidth),
-          Math.floor(rect.y * rectHeight),
-          Math.ceil(rectWidth),
-          Math.ceil(rectHeight)
-        );
-      }
-    }
-  }
-  if (dissolveRectsIndex > -1) {
-    // TODO: calibrate based on time transition is actually taking
-    var rectsAtATime = Math.floor(
-      dissolveRects.length / dissolveTransitionFrames
-    );
-    for (
-      var i = 0;
-      i < rectsAtATime && dissolveRectsIndex < dissolveRects.length;
-      i++
-    ) {
-      var rect = dissolveRects[dissolveRectsIndex];
-      // TODO: could precompute rect in screen space, or at least make this clearer with "xIndex"/"yIndex"
-      var rectWidth = innerWidth / dissolveRectsPerRow;
-      var rectHeight = innerHeight / dissolveRectsPerColumn;
-      ctx2d.fillStyle = "black";
-      ctx2d.fillRect(
-        Math.floor(rect.x * rectWidth),
-        Math.floor(rect.y * rectHeight),
-        Math.ceil(rectWidth),
-        Math.ceil(rectHeight)
-      );
-      dissolveRectsIndex += 1;
-    }
-    if (dissolveRectsIndex === dissolveRects.length) {
-      finishDissolve();
-    }
   }
 
-  requestAnimationFrame(animate);
+  if (drawing) {
+    renderer.render(scene, camera);
+    requestAnimationFrame(animate);
+    
+  }
+  // finish drawing if drawing == false
+  return;
 }
 
 function look() {
   // TODO: never don't change the view (except maybe while clearing)
   if (chance(1 / 2)) {
     // head-on view
-
     camera.position.set(0, 0, 14);
   } else {
     // random view
@@ -463,10 +277,9 @@ function look() {
   }
   var center = new THREE.Vector3(0, 0, 0);
   camera.lookAt(center);
-  // camera.updateProjectionMatrix(); // maybe?
-  controls.update();
 }
 look();
+
 
 addEventListener(
   "resize",
@@ -478,80 +291,11 @@ addEventListener(
   false
 );
 
-canvasContainer.addEventListener("mousedown", function(e) {
-  e.preventDefault();
-  if (!controls.enabled) {
-    if (e.button) {
-      clear(true);
-    } else {
-      look();
-    }
-  }
-  window.getSelection().removeAllRanges();
-  document.activeElement.blur();
-});
-
-canvasContainer.addEventListener(
-  "contextmenu",
-  function(e) {
-    e.preventDefault();
-  },
-  false
-);
-
-var fullscreenButton = document.getElementById("fullscreen-button");
-fullscreenButton.addEventListener(
-  "click",
-  function(e) {
-    if (canvasContainer.requestFullscreen) {
-      // W3C API
-      canvasContainer.requestFullscreen();
-    } else if (canvasContainer.mozRequestFullScreen) {
-      // Mozilla current API
-      canvasContainer.mozRequestFullScreen();
-    } else if (canvasContainer.webkitRequestFullScreen) {
-      // Webkit current API
-      canvasContainer.webkitRequestFullScreen();
-    }
-  },
-  false
-);
-
-var toggleControlButton = document.getElementById("toggle-controls");
-toggleControlButton.addEventListener(
-  "click",
-  function(e) {
-    controls.enabled = !controls.enabled;
-    showElementsIf(".normal-controls-enabled", !controls.enabled);
-    showElementsIf(".orbit-controls-enabled", controls.enabled);
-  },
-  false
-);
-
-// parse URL parameters
-// support e.g. <iframe src="https://1j01.github.io/pipes/#{%22hideUI%22:true}"/>
-function updateFromParametersInURL() {
-  var paramsJSON = decodeURIComponent(location.hash.replace(/^#/, ""));
-  if (paramsJSON) {
-    try {
-      var params = JSON.parse(paramsJSON);
-      if (typeof params !== "object") {
-        alert("Invalid URL parameter JSON: top level value must be an object");
-        params = null;
-      }
-    } catch (error) {
-      alert("Invalid URL parameter JSON syntax\n\n" + error + "\n\nRecieved:\n" + paramsJSON);
-    }
-  }
-  params = params || {};
-
-  // update based on the parameters
-  // TODO: support more options
-  showElementsIf(".ui-container", !params.hideUI);
-}
-
-updateFromParametersInURL();
-window.addEventListener("hashchange", updateFromParametersInURL);
+// halt animation after a set timeout
+drawing = true;
+setTimeout(() => {
+  drawing = false;
+}, 5000);
 
 // start animation
 animate();
@@ -562,15 +306,19 @@ animate();
 function random(x1, x2) {
   return Math.random() * (x2 - x1) + x1;
 }
+
 function randomInteger(x1, x2) {
   return Math.round(random(x1, x2));
 }
+
 function chance(value) {
   return Math.random() < value;
 }
+
 function chooseFrom(values) {
   return values[Math.floor(Math.random() * values.length)];
 }
+
 function shuffleArrayInPlace(array) {
   for (var i = array.length - 1; i > 0; i--) {
     var j = Math.floor(Math.random() * (i + 1));
@@ -579,19 +327,11 @@ function shuffleArrayInPlace(array) {
     array[j] = temp;
   }
 }
+
 function randomIntegerVector3WithinBox(box) {
   return new THREE.Vector3(
     randomInteger(box.min.x, box.max.x),
     randomInteger(box.min.y, box.max.y),
     randomInteger(box.min.z, box.max.z)
   );
-}
-function showElementsIf(selector, condition) {
-  Array.from(document.querySelectorAll(selector)).forEach(function(el) {
-    if (condition) {
-      el.removeAttribute("hidden");
-    } else {
-      el.setAttribute("hidden", "hidden");
-    }
-  });
 }
