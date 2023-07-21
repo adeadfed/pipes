@@ -198,14 +198,20 @@ let directionalLightL = new THREE.DirectionalLight(0xffffff, 0.9);
 directionalLightL.position.set(-1.2, 1.5, 0.5);
 scene.add(directionalLightL);
 
+let textureLoader = new THREE.TextureLoader();
+textureLoader.setCrossOrigin("anonymous");
 
 // this function is executed on each animation frame
 function animate() {
   if (options.texturePath && !textures[options.texturePath]) {
-    let texture = THREE.ImageUtils.loadTexture(options.texturePath);
-    texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-    texture.repeat.set(2, 2);
-    textures[options.texturePath] = texture;
+    textureLoader.load(
+      options.texturePath,
+      (texture) => {
+        texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+        texture.repeat.set(2, 2);
+        textures[options.texturePath] = texture;
+      }
+    )
   }
   // update
   for (let i = 0; i < pipes.length; i++) {
@@ -222,15 +228,19 @@ function animate() {
         jointType === JOINTS_BALL ? 1 : jointType === JOINTS_MIXED ? 1 / 3 : 0,
       texturePath: options.texturePath,
     };
-    if (chance(1 / 20)) {
+    if (chance(1 / 5) && isWinter(new Date())) {
       pipeOptions.teapotChance = 1 / 20; // why not? :)
-      pipeOptions.texturePath = "images/textures/candycane.png";
+      pipeOptions.texturePath = "./images/textures/candycane.png";
       // TODO: DRY
       if (!textures[pipeOptions.texturePath]) {
-        let texture = THREE.ImageUtils.loadTexture(pipeOptions.texturePath);
-        texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-        texture.repeat.set(2, 2);
-        textures[pipeOptions.texturePath] = texture;
+        textureLoader.load(
+          pipeOptions.texturePath,
+          (texture) => {
+            texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+            texture.repeat.set(2, 2);
+            textures[options.texturePath] = texture;
+          }
+        )
       }
     }
     // TODO: create new pipes over time?
@@ -280,7 +290,7 @@ addEventListener(
     // fix aspect ratio after we've stopped drawing after the timeout
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.render(scene, camera);
-    requestAnimationFrame(null);
+    requestAnimationFrame(()=>{});
   },
   false
 );
@@ -297,6 +307,12 @@ animate();
 /**************\
 |boring helpers|
 \**************/
+function isWinter(date = new Date()) {
+  var start = new Date(date.getFullYear(), 2, 1);
+  var end = new Date(date.getFullYear(), 11, 31);
+  return !(date > start && date < end);
+}
+
 function random(x1, x2) {
   return Math.random() * (x2 - x1) + x1;
 }
