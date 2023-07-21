@@ -274,9 +274,13 @@ look();
 addEventListener(
   "resize",
   function() {
-    renderer.setSize(window.innerWidth, window.innerHeight);
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
+    
+    // fix aspect ratio after we've stopped drawing after the timeout
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.render(scene, camera);
+    requestAnimationFrame(null);
   },
   false
 );
