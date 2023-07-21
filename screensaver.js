@@ -169,14 +169,9 @@ let options = {
   interval: [16, 24], // range of seconds between fade-outs... not necessarily anything like how the original works
 };
 
-let canvasContainer = document.getElementById("canvas-container");
-
-// 2d canvas for dissolve effect
-let canvas2d = document.getElementById("canvas-2d");
-let ctx2d = canvas2d.getContext("2d");
-
 // renderer
 let canvasWebGL = document.getElementById("canvas-webgl");
+
 let renderer = new THREE.WebGLRenderer({
   alpha: true,
   antialias: true,
@@ -242,14 +237,6 @@ function animate() {
     for (let i = 0; i < 1 + options.multiple * (1 + chance(1 / 10)); i++) {
       pipes.push(new Pipe(scene, pipeOptions));
     }
-  }
-
-  if (
-    canvas2d.width !== window.innerWidth ||
-    canvas2d.height !== window.innerHeight
-  ) {
-    canvas2d.width = window.innerWidth;
-    canvas2d.height = window.innerHeight;
   }
 
   if (drawing) {
