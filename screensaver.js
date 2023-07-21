@@ -102,17 +102,20 @@ let Pipe = function(scene, options) {
   makeBallJoint(self.currentPosition);
 
   self.update = function() {
+    let lastPosition
+    let lastDirectionVector
+
     if (self.positions.length > 1) {
-      let lastPosition = self.positions[self.positions.length - 2];
-      let lastDirectionVector = new THREE.Vector3().subVectors(
+      lastPosition = self.positions[self.positions.length - 2];
+      lastDirectionVector = new THREE.Vector3().subVectors(
         self.currentPosition,
         lastPosition
       );
     }
     if (chance(1 / 2) && lastDirectionVector) {
-      let directionVector = lastDirectionVector;
+      directionVector = lastDirectionVector;
     } else {
-      let directionVector = new THREE.Vector3();
+      directionVector = new THREE.Vector3();
       directionVector[chooseFrom("xyz")] += chooseFrom([+1, -1]);
     }
     let newPosition = new THREE.Vector3().addVectors(
