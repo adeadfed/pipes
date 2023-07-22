@@ -177,12 +177,12 @@ let renderer = new THREE.WebGLRenderer({
   antialias: true,
   canvas: canvasWebGL,
 });
-renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setSize(window.outerWidth, window.outerHeight);
 
 // camera
 let camera = new THREE.PerspectiveCamera(
   45,
-  window.innerWidth / window.innerHeight,
+  window.outerWidth / window.outerHeight,
   1,
   100000
 );
@@ -284,11 +284,11 @@ look();
 addEventListener(
   "resize",
   function() {
-    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.aspect = window.outerWidth / window.outerHeight;
     camera.updateProjectionMatrix();
     
     // fix aspect ratio after we've stopped drawing after the timeout
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setSize(window.outerWidth, window.outerHeight);
     renderer.render(scene, camera);
     requestAnimationFrame(()=>{});
   },
